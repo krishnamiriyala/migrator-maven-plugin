@@ -5,6 +5,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -106,6 +107,7 @@ public class DependencyExport extends AbstractMojo {
             File directives = new File(outputFilePrefix + "-" + project.getName() + "-directives");
             File references = new File(outputFilePrefix + "-" + project.getName() + "-references");
 
+            Collections.sort(allDependencies);
             try (
                     FileWriter directiveWriter = new FileWriter(directives);
                     FileWriter referenceWriter = new FileWriter(references);) {
