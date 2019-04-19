@@ -37,95 +37,95 @@ import hu.skawa.migrator_maven_plugin.model.InternalDependency;
 /**
  * Transform all dependencies for Bazel. Retrieves relevant information from the POM itself, and
  * uses the {@link ResolutionScope} TEST to scout all dependencies.
- * 
+ *
  * @author zmeggyesi
  */
 @Mojo(
-		name = "dependencies",
-		defaultPhase = LifecyclePhase.PROCESS_SOURCES,
-		requiresDependencyResolution = ResolutionScope.TEST)
+        name = "dependencies",
+        defaultPhase = LifecyclePhase.PROCESS_SOURCES,
+        requiresDependencyResolution = ResolutionScope.TEST)
 public class DependencyExport extends AbstractMojo {
-	
-	@Parameter(required = true, defaultValue = "${project}")
-	private MavenProject project;
-	
-	@Parameter(property = "outputFilePrefix")
-	private String outputFilePrefix;
-	
-	@Parameter(property = "outputDirectives")
-	private Boolean outputDirectives;
-	
-	@Parameter(property = "outputReferences", defaultValue = "false")
-	private Boolean outputReferences;
-	
-	@Parameter(property = "addHashes", defaultValue = "false")
-	private Boolean addHashes;
-	
-	@Parameter(property = "addServers", defaultValue = "false")
-	private Boolean addServers;
-	
-	private List<InternalDependency> allDependencies = new ArrayList<InternalDependency>();
-	
-	private Pattern jarPattern = Pattern.compile("^.+?\\.[^javadoc]\\.jar\\>(.+?)\\=$", Pattern.MULTILINE);
-	@SuppressWarnings("unused")
-	private Pattern pomPattern = Pattern.compile("^.+?pom\\>(.+?)\\=$", Pattern.MULTILINE);
-	
-	public void execute() throws MojoExecutionException {
-		Set<Artifact> artifacts = project.getArtifacts();
-		for (Artifact arti : artifacts) {
-			File file = arti.getFile();
-			String hash = "";
-			try {
-				byte[] contents = Files.toByteArray(file);
-				hash = Hashing.sha1().hashBytes(contents).toString();
-			} catch (IOException e) {
-				throw new MojoExecutionException("Dependency could not be hashed!", e);
-			}
-			InternalDependency id = new InternalDependency(arti.getGroupId(), arti.getArtifactId(), arti.getVersion(), hash);
-			File remotes = new File(file.getParent() + File.separator + "_remote.repositories");
-			try {
-				String remoteDescriptorContent = Files.toString(remotes, StandardCharsets.UTF_8);
-				getLog().debug(remoteDescriptorContent);
-				Matcher jarServerMatcher = jarPattern.matcher(remoteDescriptorContent);
-				while (jarServerMatcher.find()) {
-					String server = jarServerMatcher.group(1);
-					if (server != null) {
-						id.setJarServer(server);
-					} else {
-						id.setJarServer("");
-					}
-				}
-			} catch (IOException e) {
-				getLog().warn("Could not locate repository file for " + arti.getArtifactId() + ", setting to empty!");
-				id.setJarServer("");
-			}
-			allDependencies.add(id);
-		}
-		
-		if (outputFilePrefix != null) {
-			File directives = new File(outputFilePrefix + "-" + project.getName() + "-directives");
-			File references = new File(outputFilePrefix + "-" + project.getName() + "-references");
-			
-			try (
-					FileWriter directiveWriter = new FileWriter(directives);
-					FileWriter referenceWriter = new FileWriter(references);) {
-				for (InternalDependency dep : allDependencies) {
-					if (outputDirectives) {
-						directiveWriter.append(dep.toBazelDirective(addHashes, addServers));
-						directiveWriter.append("\n");
-					}
-					if (outputReferences) {
-						referenceWriter.append(dep.getArtifactId() + ": @" + dep.getBazelName() + "//jar");
-						referenceWriter.append("\n");
-					}
-				}
-			} catch (IOException e) {
-				getLog().error(e);
-			}
-		} else {
-			for (InternalDependency dep : allDependencies) {
-				getLog().info(dep.toBazelDirective(addHashes, addServers));
-			}
-		}
-	}
+
+    @Parameter(required = true, defaultValue = "${project}")
+    private MavenProject project;
+
+    @Parameter(property = "outputFilePrefix", defaultValue="bazel")
+    private String outputFilePrefix;
+
+    @Parameter(property = "outputDirectives", defaultValue="true")
+    private Boolean outputDirectives;
+
+    @Parameter(property = "outputReferences", defaultValue = "true")
+    private Boolean outputReferences;
+
+    @Parameter(property = "addHashes", defaultValue = "true")
+    private Boolean addHashes;
+
+    @Parameter(property = "addServers", defaultValue = "false")
+    private Boolean addServers;
+
+    private List<InternalDependency> allDependencies = new ArrayList<InternalDependency>();
+
+    private Pattern jarPattern = Pattern.compile("^.+?\\.[^javadoc]\\.jar\\>(.+?)\\=$", Pattern.MULTILINE);
+    @SuppressWarnings("unused")
+    private Pattern pomPattern = Pattern.compile("^.+?pom\\>(.+?)\\=$", Pattern.MULTILINE);
+
+    public void execute() throws MojoExecutionException {
+        Set<Artifact> artifacts = project.getArtifacts();
+        for (Artifact arti : artifacts) {
+            File file = arti.getFile();
+            String hash = "";
+            try {
+                byte[] contents = Files.toByteArray(file);
+                hash = Hashing.sha1().hashBytes(contents).toString();
+            } catch (IOException e) {
+                throw new MojoExecutionException("Dependency could not be hashed!", e);
+            }
+            InternalDependency id = new InternalDependency(arti.getGroupId(), arti.getArtifactId(), arti.getVersion(), hash);
+            File remotes = new File(file.getParent() + File.separator + "_remote.repositories");
+            try {
+                String remoteDescriptorContent = Files.toString(remotes, StandardCharsets.UTF_8);
+                getLog().debug(remoteDescriptorContent);
+                Matcher jarServerMatcher = jarPattern.matcher(remoteDescriptorContent);
+                while (jarServerMatcher.find()) {
+                    String server = jarServerMatcher.group(1);
+                    if (server != null) {
+                        id.setJarServer(server);
+                    } else {
+                        id.setJarServer("");
+                    }
+                }
+            } catch (IOException e) {
+                getLog().warn("Could not locate repository file for " + arti.getArtifactId() + ", setting to empty!");
+                id.setJarServer("");
+            }
+            allDependencies.add(id);
+        }
+
+        if (outputFilePrefix != null) {
+            File directives = new File(outputFilePrefix + "-" + project.getName() + "-directives");
+            File references = new File(outputFilePrefix + "-" + project.getName() + "-references");
+
+            try (
+                    FileWriter directiveWriter = new FileWriter(directives);
+                    FileWriter referenceWriter = new FileWriter(references);) {
+                for (InternalDependency dep : allDependencies) {
+                    if (outputDirectives) {
+                        directiveWriter.append(dep.toBazelDirective(addHashes, addServers));
+                        directiveWriter.append("\n");
+                    }
+                    if (outputReferences) {
+                        referenceWriter.append(dep.getArtifactId() + ": @" + dep.getBazelName() + "//jar");
+                        referenceWriter.append("\n");
+                    }
+                }
+            } catch (IOException e) {
+                getLog().error(e);
+            }
+        } else {
+            for (InternalDependency dep : allDependencies) {
+                getLog().info(dep.toBazelDirective(addHashes, addServers));
+            }
+        }
+    }
 }
