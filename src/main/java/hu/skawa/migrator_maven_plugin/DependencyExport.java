@@ -115,7 +115,7 @@ public class DependencyExport extends AbstractMojo {
                         directiveWriter.append("\n");
                     }
                     if (outputReferences) {
-                        referenceWriter.append(dep.getArtifactId() + ": @" + dep.getBazelName() + "//jar");
+                        referenceWriter.append(dep.toBazelReference());
                         referenceWriter.append("\n");
                     }
                 }

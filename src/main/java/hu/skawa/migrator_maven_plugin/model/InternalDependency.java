@@ -125,8 +125,17 @@ public class InternalDependency {
         return sb.toString();
     }
 
+
+    public String toBazelReference() {
+        return String.format(
+            "native.java_library(\n" +
+            "        name = \"%s\",\n" +
+            "        visibility = [\"//visibility:public\"],\n" +
+            "        exports = [\"@%s//jar\"],\n" +
+            "    )", this.bazelName, this.bazelName);
+    }
+
     private String sanitize(CharSequence input) {
-        return CharMatcher.javaLetterOrDigit().or(CharMatcher.is('_')).negate().replaceFrom(input,
-                                                                                            "_");
+        return CharMatcher.javaLetterOrDigit().or(CharMatcher.is('_')).negate().replaceFrom(input, "_");
     }
 }
