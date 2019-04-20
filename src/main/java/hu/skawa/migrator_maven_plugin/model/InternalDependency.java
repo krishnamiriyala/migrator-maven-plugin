@@ -2,7 +2,7 @@ package hu.skawa.migrator_maven_plugin.model;
 
 import com.google.common.base.CharMatcher;
 
-public class InternalDependency {
+public class InternalDependency implements Comparable<InternalDependency>  {
     private String groupId;
     private String artifactId;
     private String version;
@@ -22,6 +22,13 @@ public class InternalDependency {
         this.artifactId = artifactId;
         this.version = version;
         this.hash = hash;
+        this.bazelName = sanitize(this.groupId + "." + this.artifactId);
+        this.bazelArtifact = this.groupId + ":" + this.artifactId + ":" + this.version;
+    }
+
+    @Override
+    public int compareTo(InternalDependency other) {
+        return this.bazelName.compareTo(other.bazelName);
     }
 
     public String getArtifactId() {
@@ -85,12 +92,10 @@ public class InternalDependency {
         sb.append("\tname = \"");
 
         // sanitize name
-        this.bazelName = sanitize(this.groupId + "." + this.artifactId);
         sb.append(this.bazelName);
 
         sb.append("\",\n\t");
         sb.append("artifact = \"");
-        this.bazelArtifact = this.groupId + ":" + this.artifactId + ":" + this.version;
         sb.append(this.bazelArtifact);
         sb.append("\",");
 
